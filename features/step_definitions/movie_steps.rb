@@ -46,12 +46,13 @@ Given /^I am on the RottenPotatoes home page$/ do
 # Add a declarative step here for populating the DB with movies.
 
 Given /the following movies have been added to RottenPotatoes:/ do |movies_table|
-  pending  # Remove this statement when you finish implementing the test step
+  #pending  # Remove this statement when you finish implementing the test step
   movies_table.hashes.each do |movie|
     # Each returned movie will be a hash representing one row of the movies_table
     # The keys will be the table headers and the values will be the row contents.
     # Entries can be directly to the database with ActiveRecord methods
     # Add the necessary Active Record call(s) to populate the database.
+    Movie.create(movie)
   end
 end
 
@@ -59,15 +60,89 @@ When /^I have opted to see movies rated: "(.*?)"$/ do |arg1|
   # HINT: use String#split to split up the rating_list, then
   # iterate over the ratings and check/uncheck the ratings
   # using the appropriate Capybara command(s)
-  pending  #remove this statement after implementing the test step
+  uncheck('ratings_PG-13')
+  uncheck('ratings_G')
+  uncheck('ratings_PG')
+  uncheck('ratings_NC-17')
+  uncheck('ratings_R')
+  
+  split_string = arg1.split(', ')
+  split_string.each { |rating| check("ratings_#{rating}")}
+  split_string.each { |rating| puts "ratings_#{rating}" }
+  
+  click_button('ratings_submit')
+ # pending  #remove this statement after implementing the test step
 end
 
 Then /^I should see only movies rated: "(.*?)"$/ do |arg1|
-  pending  #remove this statement after implementing the test step
+  split_string = arg1.split(', ')
+  allowed_ratings = Set.new
+  split_string.each { |rating| allowed_ratings.add(rating) }
+  
+  unallowed_ratings = Set.new ['G', 'PG', 'PG-13', 'NC-17', 'R']
+  unallowed_ratings = unallowed_ratings - allowed_ratings
+  
+  result = true
+  all("tr").each do |tr|
+    text_str = tr.text
+    puts tr.text
+    unallowed_ratings.each do |rating|
+      if text_str.include?(" #{rating} ")
+        result = false
+      end
+    end
+  end
+  expect(result).to be_truthy
+ # pending  #remove this statement after implementing the test step
 end
 
 Then /^I should see all of the movies$/ do
-  pending  #remove this statement after implementing the test step
+      movie_collection = Movie.all
+  movies_set = Set.new
+  movie_collection.each { |movie| movies_set.add(movie.title) }
+  result_total = true
+
+  num_rows = 0
+  all('tr').each do |tr|
+    result = false
+    text_str = tr.text
+    
+    if text_str == 'Movie Title Rating Release Date More Info'
+      next
+    end
+    
+    num_rows += 1
+    
+    movies_set.each do |movie|
+      if text_str.include?(movie)
+        result = true
+      end
+    end
+    
+    if !result
+      result_total = false
+    end
+  end
+  
+  if num_rows != movies_set.length
+    result_total = false
+  end
+
+  expect(result_total).to be_truthy
+ # pending  #remove this statement after implementing the test step
+end
+
+When /^I have selected to sort movies alphabetically$/ do
+  click_on 'Movie Title'
+end
+
+When /^I have selected to sort movies by release date$/ do
+  click_on 'Release Date'
+end
+
+Then /^I should see "(.*?)" before "(.*?)"$/ do |first_movie, second_movie|
+  match = /#{first_movie}.*#{second_movie}/m =~ page.body
+  expect(match).to be_truthy
 end
 
 
